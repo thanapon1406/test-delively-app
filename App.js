@@ -1,10 +1,15 @@
 import * as React from 'react';
 import { AsyncStorage, Button, Text, TextInput, View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer  } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createDrawerNavigator } from '@react-navigation/drawer';
+import * as ScreenOrientation from 'expo-screen-orientation';
 
 const AuthContext = React.createContext();
+
+async function changeScreenOrientation() {
+    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+}
 
 function SplashScreen() {
     return (
@@ -59,12 +64,24 @@ function SignInScreen() {
         </View>
     );
 }
-
 const HomeStack = createDrawerNavigator();
 
 function HomeStackScreen() {
+    
+    // const windioWidth = useWindowDimensions().width;
+
+//   const isLargeScreen = windioWidth >= 768;
     return (
-        <HomeStack.Navigator>
+        <HomeStack.Navigator
+            openByDefault
+            drawerType={ 'permanent'}
+            drawerStyle={{
+                backgroundColor: '#32975b',
+                width: 90
+            }}
+            // drawerStyle={{ width: '25   %' }}
+            overlayColor="transparent"
+        >
             <HomeStack.Screen name="Home1" component={HomeScreen} />
             <HomeStack.Screen name="Home2" component={Home2Screen} />
         </HomeStack.Navigator>
@@ -74,6 +91,7 @@ function HomeStackScreen() {
 const Stack = createStackNavigator();
 
 export default function App({ navigation }) {
+    changeScreenOrientation()
     const [state, dispatch] = React.useReducer(
         (prevState, action) => {
             switch (action.type) {
