@@ -7,3 +7,4 @@ npm-debug.*
 *.mobileprovision
 .yarn/*
 .vscode/settings.json
+.vscode/launch.json
