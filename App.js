@@ -1,193 +1,46 @@
-import * as React from 'react';
-import { AsyncStorage, Button, Text, TextInput, View } from 'react-native';
-import { NavigationContainer  } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createDrawerNavigator } from '@react-navigation/drawer';
-import * as ScreenOrientation from 'expo-screen-orientation';
+import React, { useState } from 'react';
+import { createStore, combineReducers, applyMiddleware } from 'redux';
+import { AppLoading } from 'expo';
+import * as Font from 'expo-font';
+import ReduxThunk from 'redux-thunk';
+import { Provider } from 'react-redux';
 
-const AuthContext = React.createContext();
+import authReducer from './store/reducers/auth';
+import AppNavigator from './navigation/AppNavigator';
 
-async function changeScreenOrientation() {
-    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-}
+const rootReducer = combineReducers({
+  auth: authReducer,
+});
 
-function SplashScreen() {
+const store = createStore(rootReducer, applyMiddleware(ReduxThunk));
+
+const fetchFonts = () => {
+  return Font.loadAsync({
+    "kanit-light": require("./assets/fonts/THKanit/Kanit-Light.ttf"),
+    "kanit-regular": require("./assets/fonts/THKanit/Kanit-Regular.ttf"),
+    "kanit-semibold": require("./assets/fonts/THKanit/Kanit-SemiBold.ttf"),
+    "kanit-bold": require("./assets/fonts/THKanit/Kanit-Bold.ttf"),
+    "sarabun-regular": require("./assets/fonts/THSarabunNew/Sarabun-Regular.ttf"),
+    "sarabun-bold": require("./assets/fonts/THSarabunNew/Sarabun-Bold.ttf"),
+  });
+};
+
+export default function App() {
+  const [fontLoaded, setFontLoaded] = useState(false);
+
+  if (!fontLoaded) {
     return (
-        <View>
-            <Text>Loading...</Text>
-        </View>
+      <AppLoading
+        startAsync={fetchFonts}
+        onFinish={() => {
+          setFontLoaded(true);
+        }}
+      />
     );
-}
-
-function HomeScreen() {
-    const { signOut } = React.useContext(AuthContext);
-
-    return (
-        <View>
-            <Text>Signed in!</Text>
-            <Button title="Sign out" onPress={signOut} />
-        </View>
-    );
-}
-
-function Home2Screen() {
-    const { signOut } = React.useContext(AuthContext);
-
-    return (
-        <View>
-            <Text>Signed in 2!</Text>
-            <Button title="Sign out" onPress={signOut} />
-        </View>
-    );
-}
-
-function SignInScreen() {
-    const [username, setUsername] = React.useState('');
-    const [password, setPassword] = React.useState('');
-
-    const { signIn } = React.useContext(AuthContext);
-
-    return (
-        <View>
-            <TextInput
-                placeholder="Username"
-                value={username}
-                onChangeText={setUsername}
-            />
-            <TextInput
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-            />
-            <Button title="Sign in" onPress={() => signIn({ username, password })} />
-        </View>
-    );
-}
-const HomeStack = createDrawerNavigator();
-
-function HomeStackScreen() {
-    
-    // const windioWidth = useWindowDimensions().width;
-
-//   const isLargeScreen = windioWidth >= 768;
-    return (
-        <HomeStack.Navigator
-            openByDefault
-            drawerType={ 'permanent'}
-            drawerStyle={{
-                backgroundColor: '#32975b',
-                width: 90
-            }}
-            // drawerStyle={{ width: '25   %' }}
-            overlayColor="transparent"
-        >
-            <HomeStack.Screen name="Home1" component={HomeScreen} />
-            <HomeStack.Screen name="Home2" component={Home2Screen} />
-        </HomeStack.Navigator>
-    )
-}
-
-const Stack = createStackNavigator();
-
-export default function App({ navigation }) {
-    changeScreenOrientation()
-    const [state, dispatch] = React.useReducer(
-        (prevState, action) => {
-            switch (action.type) {
-                case 'RESTORE_TOKEN':
-                    return {
-                        ...prevState,
-                        userToken: action.token,
-                        isLoading: false,
-                    };
-                case 'SIGN_IN':
-                    return {
-                        ...prevState,
-                        isSignout: false,
-                        userToken: action.token,
-                    };
-                case 'SIGN_OUT':
-                    return {
-                        ...prevState,
-                        isSignout: true,
-                        userToken: null,
-                    };
-            }
-        },
-        {
-            isLoading: true,
-            isSignout: false,
-            userToken: null,
-        }
-    );
-
-    React.useEffect(() => {
-        // Fetch the token from storage then navigate to our appropriate place
-        const bootstrapAsync = async () => {
-            let userToken;
-
-            try {
-                userToken = await AsyncStorage.getItem('userToken');
-            } catch (e) {
-                // Restoring token failed
-            }
-
-            // After restoring token, we may need to validate it in production apps
-
-            // This will switch to the App screen or Auth screen and this loading
-            // screen will be unmounted and thrown away.
-            dispatch({ type: 'RESTORE_TOKEN', token: userToken });
-        };
-
-        bootstrapAsync();
-    }, []);
-
-    const authContext = React.useMemo(
-        () => ({
-            signIn: async data => {
-                // In a production app, we need to send some data (usually username, password) to server and get a token
-                // We will also need to handle errors if sign in failed
-                // After getting token, we need to persist the token using `AsyncStorage`
-                // In the example, we'll use a dummy token
-                data.username === "test" && data.password === "test" && dispatch({ type: 'SIGN_IN', token: 'dummy-auth-token' });
-            },
-            signOut: () => dispatch({ type: 'SIGN_OUT' }),
-            signUp: async data => {
-                // In a production app, we need to send user data to server and get a token
-                // We will also need to handle errors if sign up failed
-                // After getting token, we need to persist the token using `AsyncStorage`
-                // In the example, we'll use a dummy token
-
-                dispatch({ type: 'SIGN_IN', token: 'dummy-auth-token' });
-            },
-        }),
-        []
-    );
-    return (
-        <AuthContext.Provider value={authContext}>
-            <NavigationContainer>
-                <Stack.Navigator>
-                    {state.isLoading ? (
-                        // We haven't finished checking for the token yet
-                        <Stack.Screen name="Splash" component={SplashScreen} />
-                    ) : state.userToken == null ? (
-                        // No token found, user isn't signed in
-                        <Stack.Screen
-                            name="SignIn"
-                            component={SignInScreen}
-                            options={{
-                                title: 'Sign in',
-                                // When logging out, a pop animation feels intuitive
-                                animationTypeForReplace: state.isSignout ? 'pop' : 'push',
-                            }}
-                        />
-                    ) : (
-                                // User is signed in
-                                <Stack.Screen name="Home" component={HomeStackScreen} />
-                            )}
-                </Stack.Navigator>
-            </NavigationContainer>
-        </AuthContext.Provider>
-    );
+  }
+  return (
+    <Provider store={store}>
+      <AppNavigator />
+    </Provider>
+  );
 }

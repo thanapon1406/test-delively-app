@@ -1,7 +1,9 @@
 {
-    "expo": {
-      "ios": {
-        "requireFullScreen": true
-      }
-    }
+  "expo": {
+    "ios": {
+      "requireFullScreen": true,
+      "supportsTablet": true
+    },
+    "orientation": "landscape"
   }
+}
